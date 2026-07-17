@@ -15,6 +15,33 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Deploy (GitHub + Vercel)
+
+```powershell
+# 1) Log in to GitHub (browser)
+gh auth login --web
+
+# 2) Create repo + push + deploy
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1
+```
+
+Or manually:
+
+```bash
+gh repo create aether-chess --public --source=. --remote=origin --push
+npx vercel --prod
+```
+
+**Vercel env vars (required for production auth):**
+
+| Variable | Value |
+|----------|--------|
+| `AUTH_SECRET` | Random long string (`openssl rand -base64 32`) |
+| `AUTH_URL` | `https://your-app.vercel.app` |
+| OAuth keys | Optional — from `.env.example` |
+
+> Email/password accounts use a local `.data/users.json` file (fine for local). On Vercel’s serverless FS this is ephemeral — use **Google/GitHub OAuth** in production for durable sign-in.
+
 ### Auth (Sign up / Log in)
 
 | Method | Works out of the box? |
