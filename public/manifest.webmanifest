@@ -1,0 +1,17 @@
+{
+  "name": "Aether Chess",
+  "short_name": "Aether",
+  "description": "Play free. Scout deeper. The free-first chess OS.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
