@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Aether
 
 **Play free. Scout deeper.**
@@ -86,3 +87,7 @@ Next.js 16 · React 19 · TypeScript · Tailwind 4 · chess.js
 2. Stockfish WASM worker  
 3. Auth + cloud sync  
 4. Real club chat / Swiss human events  
+=======
+# AetherChess
+AetherChess — The ultimate modern chess platform. Unlimited free analysis, AI opponent scouting, Twin Bots, personalized coaching &amp; beautiful interface. Open-source alternative that beats Chess.com + Lichess.
+>>>>>>> 4135a7d38871bb09ea19867209fd44ae42120fa5
