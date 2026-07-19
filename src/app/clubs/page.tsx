@@ -96,7 +96,7 @@ export default function ClubsPage() {
         <div>
           <div className="section-title">Social</div>
           <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-            <Users className="text-cyan-300" size={28} />
+            <Users className="text-amber-400" size={28} />
             Clubs
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">
@@ -182,7 +182,7 @@ export default function ClubsPage() {
                 },
               ].map((p, i) => (
                 <div key={i} className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
-                  <div className="text-xs text-cyan-300 font-medium">{p.u}</div>
+                  <div className="text-xs text-amber-400 font-medium">{p.u}</div>
                   <p className="text-sm text-[var(--text-muted)] mt-1">{p.t}</p>
                 </div>
               ))}

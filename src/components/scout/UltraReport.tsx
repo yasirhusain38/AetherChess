@@ -18,11 +18,11 @@ export function UltraReport({
   return (
     <div className="space-y-4">
       {/* Oracle hero */}
-      <div className="panel p-5 sm:p-6 space-y-4 glow-ring border-cyan-400/20">
+      <div className="panel p-5 sm:p-6 space-y-4 glow-ring border-emerald-500/20">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="section-title flex items-center gap-2">
-              <Zap size={12} className="text-cyan-300" /> Aether Oracle
+              <Zap size={12} className="text-amber-400" /> Aether Oracle
             </div>
             <h2 className="text-xl font-semibold mt-1">Ultra-deep forensic dossier</h2>
             <p className="text-sm text-[var(--text-muted)] mt-1 max-w-2xl">{ultra.battlePlan.headline}</p>
@@ -54,7 +54,7 @@ export function UltraReport({
         <div className="text-xs text-[var(--text-dim)] flex flex-wrap gap-3">
           <span>
             Reliability:{" "}
-            <strong className="text-cyan-300 capitalize">{ultra.confidence.reliability}</strong>
+            <strong className="text-amber-400 capitalize">{ultra.confidence.reliability}</strong>
           </span>
           <span>{ultra.confidence.dataFreshness}</span>
           <span>Sample quality {ultra.confidence.sampleQuality}/100</span>
@@ -105,7 +105,7 @@ export function UltraReport({
             key={ins.title}
             className={cn(
               "panel p-4 space-y-2",
-              ins.edge === "huge" && "border-cyan-400/30",
+              ins.edge === "huge" && "border-emerald-500/30",
               ins.edge === "solid" && "border-white/10",
             )}
           >
@@ -117,8 +117,8 @@ export function UltraReport({
               <span
                 className={cn(
                   "text-[10px] uppercase font-bold",
-                  ins.edge === "huge" && "text-cyan-300",
-                  ins.edge === "solid" && "text-violet-300",
+                  ins.edge === "huge" && "text-amber-400",
+                  ins.edge === "solid" && "text-amber-400",
                   ins.edge === "small" && "text-[var(--text-dim)]",
                 )}
               >
@@ -230,7 +230,7 @@ export function UltraReport({
             className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-1"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-300 text-xs font-bold">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-amber-400 text-xs font-bold">
                 {p.priority}
               </span>
               <span className="font-semibold text-sm">{p.title}</span>
@@ -241,7 +241,7 @@ export function UltraReport({
             </div>
             <p className="text-xs text-[var(--text-muted)]">{p.idea}</p>
             {p.sample && (
-              <p className="text-[11px] font-mono text-cyan-200/80 truncate">{p.sample}</p>
+              <p className="text-[11px] font-mono text-amber-300/80 truncate">{p.sample}</p>
             )}
             <p className="text-[11px] text-[var(--text-dim)]">{p.why}</p>
           </div>
@@ -258,7 +258,7 @@ export function UltraReport({
                 key={e.eco + e.as + e.name}
                 className="flex items-center gap-2 text-sm border-b border-white/5 pb-1.5"
               >
-                <span className="font-mono text-cyan-300 w-10 shrink-0">{e.eco}</span>
+                <span className="font-mono text-amber-400 w-10 shrink-0">{e.eco}</span>
                 <span className="truncate flex-1 text-[var(--text-muted)]">{e.name}</span>
                 <span className="text-[10px] capitalize text-[var(--text-dim)]">{e.as[0]}</span>
                 <span className="font-mono w-12 text-right">{e.score}%</span>
@@ -439,7 +439,7 @@ export function UltraReport({
                 <SeverityBadge severity={w.severity} />
               </div>
               <p className="text-xs text-[var(--text-muted)]">{w.detail}</p>
-              <p className="text-xs text-cyan-200/90">Exploit: {w.exploit}</p>
+              <p className="text-xs text-amber-300/90">Exploit: {w.exploit}</p>
             </div>
           ))}
         </div>

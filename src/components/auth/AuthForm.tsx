@@ -162,7 +162,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       <div className="panel p-6 sm:p-8 space-y-6 glow-ring">
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 to-violet-400 text-[#061018] font-bold shadow-[0_0_24px_rgba(110,231,255,0.35)]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-amber-500 text-[#061018] font-bold shadow-[0_0_24px_rgba(129,182,76,0.35)]">
               Æ
             </span>
           </Link>
@@ -210,7 +210,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           </div>
           <p className="text-[11px] text-[var(--text-dim)] leading-relaxed">
             Social buttons marked <span className="opacity-80">setup</span> need API keys in{" "}
-            <code className="text-cyan-300/90">.env.local</code>. Email works now without keys.
+            <code className="text-amber-400/90">.env.local</code>. Email works now without keys.
           </p>
         </div>
 
@@ -283,7 +283,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             </p>
           )}
           {info && (
-            <p className="text-sm text-cyan-200/90 bg-cyan-400/10 border border-cyan-400/20 rounded-xl px-3 py-2">
+            <p className="text-sm text-amber-300/90 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
               {info}
             </p>
           )}
@@ -306,14 +306,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           {mode === "login" ? (
             <>
               New to Aether?{" "}
-              <Link href="/signup" className="text-cyan-300 hover:underline">
+              <Link href="/signup" className="text-amber-400 hover:underline">
                 Sign up free
               </Link>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <Link href="/login" className="text-cyan-300 hover:underline">
+              <Link href="/login" className="text-amber-400 hover:underline">
                 Sign in
               </Link>
             </>

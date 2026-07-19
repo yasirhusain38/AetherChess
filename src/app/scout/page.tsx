@@ -28,7 +28,11 @@ import {
   type LiveProfile,
 } from "@/lib/chess/importGames";
 import { UltraReport } from "@/components/scout/UltraReport";
+import { RadarChart } from "@/components/ui/Charts";
+import { PageLoading } from "@/components/ui/Skeleton";
 import { SeverityBadge, StatBar } from "@/components/ui/StatBar";
+import { emitRewardToast } from "@/components/growth/ToastReward";
+import { trackScout } from "@/lib/engagement";
 import { bumpStats, saveGame } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -138,6 +142,12 @@ export default function ScoutPage() {
         setDataMode("demo");
         setLive(null);
         bumpStats({ scoutReports: 1 });
+        try {
+          const r = trackScout();
+          emitRewardToast({ gain: r.gain, bonus: r.bonus, reason: "Scout report" });
+        } catch {
+          /* ignore */
+        }
         if (source !== "demo") {
           setError(
             fetchError ||
@@ -200,6 +210,12 @@ export default function ScoutPage() {
       setGameSample(games.slice(0, 20));
       setDataMode("live");
       bumpStats({ scoutReports: 1 });
+      try {
+        const r = trackScout();
+        emitRewardToast({ gain: r.gain, bonus: r.bonus, reason: "Oracle dossier ready" });
+      } catch {
+        /* ignore */
+      }
     } catch (e) {
       console.error(e);
       setError("Scout failed unexpectedly. Try again or use Demo.");
@@ -235,12 +251,12 @@ export default function ScoutPage() {
       <div>
         <div className="section-title">Analyze & Scout</div>
         <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-          <Crosshair className="text-violet-300" size={28} />
+          <Crosshair className="text-amber-400" size={28} />
           Opponent Scout
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-1 max-w-2xl">
           Type any <strong>Chess.com</strong> username → live games →{" "}
-          <strong className="text-cyan-300">Ultra-Deep Oracle dossier</strong> (beyond Chess Stalker:
+          <strong className="text-amber-400">Ultra-Deep Oracle dossier</strong> (beyond Chess Stalker:
           piece DNA, conversion physics, nemesis graphs, rematch curse, clock autopsy, ECO clusters,
           trap maps, battle plan) + Twin Bot.
         </p>
@@ -333,7 +349,7 @@ export default function ScoutPage() {
           </p>
         )}
         {statusLine && (
-          <p className="text-sm text-cyan-300/90 animate-pulse-soft">{statusLine}</p>
+          <p className="text-sm text-amber-400/90 animate-pulse-soft">{statusLine}</p>
         )}
         {meta && !loading && (
           <p className="text-xs text-[var(--text-dim)]">{meta}</p>
@@ -341,13 +357,11 @@ export default function ScoutPage() {
       </div>
 
       {loading && (
-        <div className="panel p-8 text-center space-y-2">
-          <div className="text-cyan-300 animate-pulse-soft font-medium">
-            Ingesting games · Oracle factors · piece DNA · traps · clocks · nemesis graph…
-          </div>
-          <p className="text-xs text-[var(--text-dim)]">
-            Deep forensics on large archives may take 10–30s
+        <div className="space-y-3">
+          <p className="text-sm text-amber-400 animate-pulse-soft">
+            Building opponent intelligence dossier…
           </p>
+          <PageLoading variant="scout" />
         </div>
       )}
 
@@ -401,7 +415,7 @@ export default function ScoutPage() {
                           href={live.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-cyan-300 hover:underline"
+                          className="text-amber-400 hover:underline"
                         >
                           Open profile
                         </a>
@@ -481,6 +495,34 @@ export default function ScoutPage() {
               />
             </div>
           </div>
+
+          {ultra && (
+            <div className="grid lg:grid-cols-3 gap-3">
+              <div className="panel p-4 lg:col-span-1 flex flex-col justify-center items-center text-center gap-2">
+                <div className="text-[10px] uppercase text-[var(--text-dim)]">Win probability edge</div>
+                <div
+                  className="relative h-28 w-28 rounded-full grid place-items-center"
+                  style={{
+                    background: `conic-gradient(var(--success) ${ultra.oracleScore * 3.6}deg, rgba(255,255,255,0.08) 0)`,
+                  }}
+                >
+                  <div className="h-20 w-20 rounded-full bg-[var(--bg-panel)] grid place-items-center">
+                    <span className="font-mono text-2xl font-semibold text-emerald-300">
+                      {Math.min(92, Math.round(40 + ultra.oracleScore * 0.45))}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] px-2">
+                  Estimated prep-driven edge if you follow the battle plan (not a match prediction).
+                </p>
+              </div>
+              <RadarChart
+                className="lg:col-span-2"
+                labels={ultra.styleRadar.labels}
+                values={ultra.styleRadar.values}
+              />
+            </div>
+          )}
 
           {ultra ? (
             <UltraReport ultra={ultra} twinHref={twinHref} username={report.username} />
@@ -568,7 +610,7 @@ export default function ScoutPage() {
                     type="button"
                     onClick={() => importGame(g)}
                     disabled={!g.pgn}
-                    className="w-full text-left rounded-xl border border-white/8 px-3 py-2.5 hover:border-cyan-400/30 transition-colors disabled:opacity-40"
+                    className="w-full text-left rounded-xl border border-white/8 px-3 py-2.5 hover:border-emerald-500/30 transition-colors disabled:opacity-40"
                   >
                     <div className="text-sm font-medium">
                       {g.white}

@@ -31,7 +31,7 @@ export function PromotionPicker({
             <button
               key={x.p}
               type="button"
-              className="aspect-square rounded-2xl border border-white/10 bg-white/5 text-4xl hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-colors"
+              className="aspect-square rounded-2xl border border-white/10 bg-white/5 text-4xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-colors"
               onClick={() => onPick(x.p)}
               aria-label={`Promote to ${x.p}`}
             >

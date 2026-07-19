@@ -10,6 +10,13 @@ import { getCoachPlan } from "@/lib/coach";
 import { playSound, soundFromSan } from "@/lib/chess/sound";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { PUZZLES } from "@/lib/puzzles";
+import { emitRewardToast } from "@/components/growth/ToastReward";
+import {
+  claimQuest,
+  getDailyQuests,
+  loadEngagement,
+  trackPuzzle,
+} from "@/lib/engagement";
 import { bumpStats } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +121,12 @@ function TrainInner() {
         setMsg("Solved!");
         setSolved((s) => s + 1);
         bumpStats({ puzzlesSolved: 1 });
+        try {
+          const r = trackPuzzle();
+          emitRewardToast({ gain: r.gain, bonus: r.bonus, reason: "Puzzle" });
+        } catch {
+          /* ignore */
+        }
         playSound("success", settings.sound);
         window.setTimeout(() => loadPuzzle(puzzleIndex + 1), 550);
         return true;
@@ -129,6 +142,12 @@ function TrainInner() {
             setMsg("Solved!");
             setSolved((s) => s + 1);
             bumpStats({ puzzlesSolved: 1 });
+            try {
+              const r = trackPuzzle();
+              emitRewardToast({ gain: r.gain, bonus: r.bonus, reason: "Puzzle" });
+            } catch {
+              /* ignore */
+            }
             playSound("success", settings.sound);
             window.setTimeout(() => loadPuzzle(puzzleIndex + 1), 550);
           } else setMsg("Good — keep going.");
@@ -231,8 +250,49 @@ function TrainInner() {
             </div>
             <span className="chip !cursor-default">
               <Flame size={14} className="text-orange-300" />
-              {plan.streak} day streak
+              {loadEngagement().streak} day streak
             </span>
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-3">
+            <div className="section-title">Daily quests (open loops)</div>
+            <p className="text-[11px] text-[var(--text-dim)]">
+              Unfinished goals stay in working memory — complete them for XP.
+            </p>
+            {getDailyQuests().map((q) => (
+              <div
+                key={q.id}
+                className="flex flex-wrap items-center justify-between gap-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium">{q.title}</div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    {q.progress}/{q.target} · {q.detail}
+                  </div>
+                  <div className="progress-bar mt-1 max-w-xs">
+                    <span
+                      style={{ width: `${Math.min(100, (q.progress / q.target) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Link href={q.href} className="btn btn-secondary !py-1.5 !text-xs">
+                    Go
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-primary !py-1.5 !text-xs"
+                    disabled={q.done || q.progress < q.target}
+                    onClick={() => {
+                      const r = claimQuest(q.id);
+                      if (r) emitRewardToast({ gain: r.gain, bonus: r.bonus, reason: q.title });
+                    }}
+                  >
+                    {q.done ? "Claimed" : `+${q.xp} XP`}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="progress-bar">
             <span style={{ width: `${weeklyPct}%` }} />
@@ -357,7 +417,7 @@ function TrainInner() {
               showCoordinates={settings.coord}
             />
             {!stormActive && stormLeft === 0 && (
-              <p className="text-sm text-cyan-200">
+              <p className="text-sm text-amber-300">
                 Time! Score {stormScore}. Best this session {Math.max(stormBest, stormScore)}.
               </p>
             )}

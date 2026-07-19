@@ -56,7 +56,7 @@ export default function LeaderboardPage() {
               onClick={() => setCategory(k)}
               className={cn(
                 "glass rounded-2xl p-3 text-left capitalize",
-                category === k && "ring-1 ring-cyan-400/40",
+                category === k && "ring-1 ring-emerald-500/40",
               )}
             >
               <div className="text-[10px] uppercase text-[var(--text-dim)]">{k}</div>
@@ -75,14 +75,14 @@ export default function LeaderboardPage() {
           {rows.map((r, i) => (
             <div
               key={r.name + i}
-              className={cn("flex items-center gap-3 px-4 py-3", r.you && "bg-cyan-400/10")}
+              className={cn("flex items-center gap-3 px-4 py-3", r.you && "bg-emerald-500/10")}
             >
               <span className="w-8 font-mono text-sm text-[var(--text-dim)]">{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">
                   {r.name}
                   {r.you && (
-                    <span className="ml-2 text-[10px] uppercase text-cyan-300">you</span>
+                    <span className="ml-2 text-[10px] uppercase text-amber-400">you</span>
                   )}
                 </div>
                 <div className="text-[11px] text-[var(--text-dim)]">{r.games} games</div>

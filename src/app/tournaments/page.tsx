@@ -370,7 +370,7 @@ export default function TournamentsPage() {
                 )}
                 {phase === "between" && (
                   <div className="panel p-6 space-y-3 text-center">
-                    <Bot className="mx-auto text-cyan-300" />
+                    <Bot className="mx-auto text-amber-400" />
                     <div className="font-semibold">
                       Round {Math.min(round + 1, EVENT.rounds)} of {EVENT.rounds}
                     </div>
@@ -413,7 +413,7 @@ export default function TournamentsPage() {
                 key={s.id}
                 className={cn(
                   "flex items-center justify-between rounded-xl px-2 py-1.5 text-sm",
-                  s.isYou && "bg-cyan-400/10 border border-cyan-400/25",
+                  s.isYou && "bg-emerald-500/10 border border-emerald-500/25",
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">

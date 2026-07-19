@@ -48,7 +48,7 @@ export function UserMenu() {
             className="h-7 w-7 rounded-lg object-cover"
           />
         ) : (
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-300/80 to-violet-400/80 text-[#061018] text-xs font-bold">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400/80 to-amber-500/80 text-[#061018] text-xs font-bold">
             {initial}
           </span>
         )}

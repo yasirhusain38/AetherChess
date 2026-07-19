@@ -30,7 +30,7 @@ export function EvalBar({
           style={{ height: `${whitePct}%` }}
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[9px] font-mono font-bold text-cyan-200/90 mix-blend-difference rotate-180 writing-vertical">
+          <span className="text-[9px] font-mono font-bold text-amber-300/90 mix-blend-difference rotate-180 writing-vertical">
             {formatEval(scoreCp)}
           </span>
         </div>

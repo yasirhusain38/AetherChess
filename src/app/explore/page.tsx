@@ -64,7 +64,7 @@ export default function ExplorePage() {
       <div>
         <div className="section-title">Opening Explorer</div>
         <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-          <Compass className="text-cyan-300" size={28} />
+          <Compass className="text-amber-400" size={28} />
           Explore
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-1 max-w-2xl">
@@ -109,7 +109,7 @@ export default function ExplorePage() {
               <div className="font-semibold">
                 {current.name ?? "Variation"}{" "}
                 {current.eco && (
-                  <span className="text-xs text-cyan-300 font-mono ml-1">{current.eco}</span>
+                  <span className="text-xs text-amber-400 font-mono ml-1">{current.eco}</span>
                 )}
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-1">
@@ -133,7 +133,7 @@ export default function ExplorePage() {
                 key={n.san}
                 type="button"
                 onClick={() => playSan(n.san)}
-                className="w-full rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5 text-left hover:border-cyan-400/30 transition-colors"
+                className="w-full rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5 text-left hover:border-emerald-500/30 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono font-semibold">{n.san}</span>

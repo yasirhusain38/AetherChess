@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { getSettings, saveSettings, type UserSettings } from "@/lib/storage";
 
 const DEFAULT: UserSettings = {
-  boardTheme: "aether",
+  boardTheme: "tournament",
   pieceTheme: "classic",
   sound: true,
   animations: true,

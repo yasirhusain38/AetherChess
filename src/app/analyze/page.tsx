@@ -6,6 +6,12 @@ import { Chess } from "chess.js";
 import { Cpu, Sparkles, Upload } from "lucide-react";
 import { ChessBoard } from "@/components/chess/ChessBoard";
 import { EvalBar } from "@/components/chess/EvalBar";
+import {
+  AccuracyRing,
+  EvalGraph,
+  MistakeTimeline,
+  QualityBars,
+} from "@/components/ui/Charts";
 import { classifyGame, classColor, classLabel } from "@/lib/chess/analysis";
 import { analyzePosition, formatEval } from "@/lib/chess/engine";
 import { useStorageEpoch } from "@/lib/hooks/useClientStorage";
@@ -73,17 +79,72 @@ function AnalyzeInner({ initialPgn, initialGameId }: { initialPgn: string; initi
   const bestSquares =
     engine?.bestMove ? [engine.bestMove.from, engine.bestMove.to] : [];
 
+  const evalSeries = useMemo(() => {
+    if (!summary) return [] as number[];
+    return summary.moves.map((m) => m.evalAfter ?? 0);
+  }, [summary]);
+
+  const qualityCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    if (!summary) return c;
+    for (const m of summary.moves) {
+      c[m.classification] = (c[m.classification] ?? 0) + 1;
+    }
+    return c;
+  }, [summary]);
+
+  const timeline = useMemo(() => {
+    if (!summary) return [];
+    return summary.moves
+      .map((m, i) => ({ m, i }))
+      .filter(
+        ({ m, i }) =>
+          m.classification === "blunder" ||
+          m.classification === "mistake" ||
+          m.classification === "brilliant" ||
+          summary.criticalMoments.includes(i),
+      )
+      .map(({ m, i }) => ({
+        ply: i + 1,
+        label: `${m.san} — ${classLabel(m.classification)}: ${m.comment}`,
+        kind:
+          m.classification === "blunder" || m.classification === "mistake"
+            ? (m.classification as "blunder" | "mistake")
+            : m.classification === "brilliant"
+              ? ("brilliant" as const)
+              : ("critical" as const),
+      }));
+  }, [summary]);
+
+  const insights = useMemo(() => {
+    if (!summary) return [] as string[];
+    const out: string[] = [];
+    const blunders = summary.moves.filter((m) => m.classification === "blunder").length;
+    const books = summary.moves.filter((m) => m.classification === "book").length;
+    out.push(
+      `Accuracy White ${summary.accuracyWhite}% · Black ${summary.accuracyBlack}% · ${summary.reason}`,
+    );
+    if (blunders)
+      out.push(`${blunders} blunder(s) — review the red timeline markers first.`);
+    if (books >= 6) out.push("Solid book phase — decide earlier where to deviate for advantage.");
+    if (summary.criticalMoments[0] != null)
+      out.push(`First critical moment around move ${Math.ceil((summary.criticalMoments[0] + 1) / 2)}.`);
+    if (engine?.lines[0])
+      out.push(`Engine prefers ${engine.lines[0].san} here (${formatEval(engine.lines[0].scoreCp)}).`);
+    return out;
+  }, [summary, engine]);
+
   return (
     <div className="fade-up space-y-6">
       <div>
-        <div className="section-title">Analyze</div>
+        <div className="section-title">Analysis dashboard</div>
         <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-          <Sparkles className="text-cyan-300" size={28} />
-          Story review + engine
+          <Sparkles className="text-amber-400" size={28} />
+          Free engine review & performance insights
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-1 max-w-2xl">
-          Unlimited free review with move classifications and a built-in engine. Import PGN or open a
-          saved game.
+          Professional dashboard: eval graph, accuracy rings, quality breakdown, critical timeline,
+          and AI-style explanations — unlimited free.
         </p>
       </div>
 
@@ -151,9 +212,9 @@ function AnalyzeInner({ initialPgn, initialGameId }: { initialPgn: string; initi
             <div className="panel p-4 space-y-2 max-w-[600px]">
               <div className="flex items-center justify-between gap-2">
                 <div className="section-title flex items-center gap-2">
-                  <Cpu size={12} /> Engine · depth {engine.depth}
+                  <Cpu size={12} /> Best moves · depth {engine.depth}
                 </div>
-                <span className="font-mono text-sm text-cyan-300">{formatEval(engine.scoreCp)}</span>
+                <span className="font-mono text-sm text-amber-400">{formatEval(engine.scoreCp)}</span>
               </div>
               <div className="space-y-1.5">
                 {engine.lines.map((line, i) => (
@@ -162,10 +223,36 @@ function AnalyzeInner({ initialPgn, initialGameId }: { initialPgn: string; initi
                     className="flex items-center gap-3 text-sm font-mono rounded-lg bg-white/[0.03] px-2 py-1.5"
                   >
                     <span className="text-[var(--text-dim)] w-4">{i + 1}.</span>
-                    <span className="text-cyan-200 w-14">{formatEval(line.scoreCp)}</span>
+                    <span className="text-amber-300 w-14">{formatEval(line.scoreCp)}</span>
                     <span className="text-[var(--text-muted)] truncate">{line.pv.join(" ")}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {summary && (
+            <div className="grid sm:grid-cols-2 gap-3 max-w-[600px]">
+              <EvalGraph points={evalSeries} className="sm:col-span-2" />
+              <AccuracyRing white={summary.accuracyWhite} black={summary.accuracyBlack} />
+              <QualityBars counts={qualityCounts} />
+              <MistakeTimeline events={timeline} className="sm:col-span-2" />
+              <div className="panel p-4 sm:col-span-2 space-y-2">
+                <div className="section-title">AI insights & phase notes</div>
+                <div className="text-xs text-[var(--text-muted)] space-y-1.5">
+                  <p>
+                    <strong className="text-white">Opening:</strong> first{" "}
+                    {Math.min(10, summary.moves.length)} moves — book/novelty balance shapes the plan.
+                  </p>
+                  <p>
+                    <strong className="text-white">Endgame:</strong> final accuracy gap{" "}
+                    {Math.abs(summary.accuracyWhite - summary.accuracyBlack).toFixed(1)}% between
+                    sides.
+                  </p>
+                  {insights.map((t) => (
+                    <p key={t}>▸ {t}</p>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -182,7 +269,7 @@ function AnalyzeInner({ initialPgn, initialGameId }: { initialPgn: string; initi
                   type="checkbox"
                   checked={engineOn}
                   onChange={(e) => setEngineOn(e.target.checked)}
-                  className="accent-cyan-300"
+                  className="accent-emerald-500"
                 />
                 Engine
               </label>
@@ -238,7 +325,7 @@ function AnalyzeInner({ initialPgn, initialGameId }: { initialPgn: string; initi
                 className={cn(
                   "w-full text-left rounded-xl border px-3 py-2 text-sm transition-colors",
                   activeGameId === g.id
-                    ? "border-cyan-400/40 bg-cyan-400/10"
+                    ? "border-emerald-500/40 bg-emerald-500/10"
                     : "border-white/8 hover:border-white/20",
                 )}
               >

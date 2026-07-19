@@ -9,7 +9,6 @@ const PIECE_VALUE: Record<string, number> = {
   k: 20000,
 };
 
-// Simplified piece-square tables (middlegame-ish)
 const PST: Record<string, number[]> = {
   p: [
     0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10,
@@ -52,8 +51,7 @@ function idx(square: Square, color: "w" | "b") {
 }
 
 export function evaluateFen(fen: string): number {
-  const chess = new Chess(fen);
-  return evaluate(chess);
+  return evaluate(new Chess(fen));
 }
 
 function evaluate(chess: Chess): number {
@@ -61,58 +59,97 @@ function evaluate(chess: Chess): number {
   if (chess.isDraw()) return 0;
 
   let score = 0;
-  const board = chess.board();
-  for (const row of board) {
+  let wb = 0;
+  let bb = 0;
+  for (const row of chess.board()) {
     for (const p of row) {
       if (!p) continue;
+      if (p.type === "b") {
+        if (p.color === "w") wb++;
+        else bb++;
+      }
       const base = PIECE_VALUE[p.type] + (PST[p.type]?.[idx(p.square, p.color)] ?? 0);
       score += p.color === "w" ? base : -base;
     }
   }
+  if (wb >= 2) score += 40;
+  if (bb >= 2) score -= 40;
 
-  // Mobility (cheap)
   const turn = chess.turn();
-  const moves = chess.moves().length;
-  score += turn === "w" ? moves * 2 : -moves * 2;
-  if (chess.inCheck()) score += turn === "w" ? -40 : 40;
+  const mobility = chess.moves().length;
+  score += turn === "w" ? mobility * 4 : -mobility * 4;
+  if (chess.inCheck()) score += turn === "w" ? -60 : 60;
   return score;
 }
 
 function orderMoves(moves: Move[]): Move[] {
-  return moves.sort((a, b) => {
-    const cap = (m: Move) => (m.captured ? PIECE_VALUE[m.captured] * 10 - PIECE_VALUE[m.piece] : 0);
-    const check = (m: Move) => (m.san.includes("#") ? 10000 : m.san.includes("+") ? 50 : 0);
-    return cap(b) + check(b) - (cap(a) + check(a));
+  return [...moves].sort((a, b) => {
+    const score = (m: Move) => {
+      let s = 0;
+      if (m.san.includes("#")) s += 1_000_000;
+      if (m.captured) s += 10 * PIECE_VALUE[m.captured] - PIECE_VALUE[m.piece];
+      if (m.promotion) s += 850;
+      if (m.san.includes("+")) s += 55;
+      if (m.flags.includes("k") || m.flags.includes("q")) s += 45;
+      return s;
+    };
+    return score(b) - score(a);
   });
 }
 
-function negamax(chess: Chess, depth: number, alpha: number, beta: number): number {
-  if (depth === 0 || chess.isGameOver()) {
-    return chess.turn() === "w" ? evaluate(chess) : -evaluate(chess);
-  }
+function quiesce(chess: Chess, alpha: number, beta: number, qDepth: number): number {
+  const stand =
+    chess.turn() === "w" ? evaluate(chess) : -evaluate(chess);
+  if (qDepth <= 0 || chess.isGameOver()) return stand;
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
 
-  let best = -Infinity;
-  const moves = orderMoves(chess.moves({ verbose: true }));
-  for (const m of moves) {
+  const noisy = orderMoves(
+    chess
+      .moves({ verbose: true })
+      .filter((m) => m.captured || m.promotion || m.san.includes("+") || m.san.includes("#")),
+  ).slice(0, 16);
+
+  for (const m of noisy) {
     chess.move(m);
-    const score = -negamax(chess, depth - 1, -beta, -alpha);
+    const s = -quiesce(chess, -beta, -alpha, qDepth - 1);
     chess.undo();
-    if (score > best) best = score;
-    if (score > alpha) alpha = score;
-    if (alpha >= beta) break;
+    if (s >= beta) return beta;
+    if (s > alpha) alpha = s;
   }
-  return best;
+  return alpha;
 }
 
-export interface EngineLine {
-  move: Move;
-  scoreCp: number; // from side-to-move POV, then converted to white POV in analyzePosition
-  san: string;
+function negamax(chess: Chess, depth: number, alpha: number, beta: number, ply: number): number {
+  if (chess.isCheckmate()) return -100000 + ply;
+  if (chess.isDraw()) return 0;
+  if (depth <= 0) return quiesce(chess, alpha, beta, 4);
+
+  const moves = orderMoves(chess.moves({ verbose: true }));
+  if (!moves.length) return chess.inCheck() ? -100000 + ply : 0;
+
+  // Late move reduction: full search first 10, shallower for rest at depth>=3
+  let i = 0;
+  for (const m of moves) {
+    chess.move(m);
+    let score: number;
+    if (i >= 12 && depth >= 3 && !m.captured && !m.san.includes("+")) {
+      score = -negamax(chess, depth - 2, -beta, -alpha, ply + 1);
+      if (score > alpha) score = -negamax(chess, depth - 1, -beta, -alpha, ply + 1);
+    } else {
+      score = -negamax(chess, depth - 1, -beta, -alpha, ply + 1);
+    }
+    chess.undo();
+    i++;
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
 }
 
 export interface EngineResult {
   bestMove: Move | null;
-  scoreCp: number; // white POV centipawns
+  scoreCp: number;
   depth: number;
   lines: { san: string; scoreCp: number; pv: string[] }[];
   nodes: number;
@@ -122,52 +159,38 @@ export function analyzePosition(fen: string, depth = 3, multiPv = 3): EngineResu
   const chess = new Chess(fen);
   const turn = chess.turn();
   const moves = orderMoves(chess.moves({ verbose: true }));
-  let nodes = moves.length;
-
   if (!moves.length) {
-    const score = evaluate(chess);
-    return { bestMove: null, scoreCp: score, depth, lines: [], nodes: 0 };
+    return { bestMove: null, scoreCp: evaluate(chess), depth, lines: [], nodes: 0 };
   }
 
+  const rootDepth = Math.max(1, Math.min(4, depth));
   const scored: { move: Move; scoreWhite: number; pv: string[] }[] = [];
 
+  let alpha = -Infinity;
   for (const m of moves) {
     chess.move(m);
-    let scoreToMove: number;
-    if (depth <= 1 || chess.isGameOver()) {
-      scoreToMove = turn === "w" ? -evaluate(chess) : evaluate(chess);
-      // After we moved, evaluate from opponent view in negamax style
-      // Simpler: evaluate board white POV after move, so score for mover is inverted if black
-      const whiteEval = evaluate(chess);
-      scoreToMove = turn === "w" ? whiteEval : -whiteEval;
-    } else {
-      // negamax returns score from side-to-move (opponent) perspective after move
-      const nm = -negamax(chess, depth - 1, -Infinity, Infinity);
-      scoreToMove = nm;
-      nodes += 40 * depth;
-    }
-    const whiteScore = turn === "w" ? scoreToMove : -scoreToMove;
+    const scoreSTM = -negamax(chess, rootDepth - 1, -Infinity, Infinity, 1);
+    const whiteScore = turn === "w" ? scoreSTM : -scoreSTM;
     const pv = [m.san];
-    // one-ply PV extension
-    const replies = orderMoves(chess.moves({ verbose: true })).slice(0, 1);
-    if (replies[0]) pv.push(replies[0].san);
+    const reply = orderMoves(chess.moves({ verbose: true }))[0];
+    if (reply) pv.push(reply.san);
     chess.undo();
     scored.push({ move: m, scoreWhite: whiteScore, pv });
+    if (turn === "w" && whiteScore > alpha) alpha = whiteScore;
+    if (turn === "b" && -whiteScore > alpha) alpha = -whiteScore;
   }
 
-  scored.sort((a, b) => (turn === "w" ? b.scoreWhite - a.scoreWhite : a.scoreWhite - b.scoreWhite));
+  scored.sort((a, b) =>
+    turn === "w" ? b.scoreWhite - a.scoreWhite : a.scoreWhite - b.scoreWhite,
+  );
   const top = scored.slice(0, multiPv);
 
   return {
     bestMove: top[0]?.move ?? null,
     scoreCp: top[0]?.scoreWhite ?? 0,
-    depth,
-    lines: top.map((t) => ({
-      san: t.move.san,
-      scoreCp: t.scoreWhite,
-      pv: t.pv,
-    })),
-    nodes,
+    depth: rootDepth,
+    lines: top.map((t) => ({ san: t.move.san, scoreCp: t.scoreWhite, pv: t.pv })),
+    nodes: moves.length * rootDepth * 40,
   };
 }
 
@@ -178,7 +201,36 @@ export function formatEval(cp: number): string {
   return cp >= 0 ? `+${p}` : p;
 }
 
-/** Pick a strong move for bots / puzzles verification */
+/** Fast best-move search with alpha-beta (for bots) */
 export function engineMove(fen: string, depth = 2): Move | null {
-  return analyzePosition(fen, depth, 1).bestMove;
+  const chess = new Chess(fen);
+  const rootDepth = Math.max(1, Math.min(4, depth));
+  const moves = orderMoves(chess.moves({ verbose: true }));
+  if (!moves.length) return null;
+
+  let best: Move | null = null;
+  let bestScore = -Infinity;
+  let alpha = -Infinity;
+  const beta = Infinity;
+
+  for (const m of moves) {
+    chess.move(m);
+    const score = -negamax(chess, rootDepth - 1, -beta, -alpha, 1);
+    chess.undo();
+    if (score > bestScore) {
+      bestScore = score;
+      best = m;
+    }
+    if (score > alpha) alpha = score;
+  }
+  return best;
+}
+
+export function depthForRating(rating: number): number {
+  if (rating >= 2600) return 4;
+  if (rating >= 2000) return 3;
+  if (rating >= 1400) return 3;
+  if (rating >= 1000) return 2;
+  if (rating >= 700) return 2;
+  return 1;
 }

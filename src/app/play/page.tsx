@@ -27,6 +27,9 @@ import {
 import { soundFromSan, playSound } from "@/lib/chess/sound";
 import { useStorageEpoch } from "@/lib/hooks/useClientStorage";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { PostGameEmotion } from "@/components/growth/PostGameEmotion";
+import { emitRewardToast } from "@/components/growth/ToastReward";
+import { loadEngagement, trackGamePlayed } from "@/lib/engagement";
 import { bumpStats, listGames, saveGame } from "@/lib/storage";
 import { cn, formatRating } from "@/lib/utils";
 
@@ -52,7 +55,7 @@ function PlayInner() {
   const [timeId, setTimeId] = useState("5+0");
   const [colorChoice, setColorChoice] = useState<"white" | "black" | "random">("white");
   const [botKey, setBotKey] = useState(presetBot && BOT_PRESETS[presetBot] ? presetBot : "nova");
-  const [useEngineBot, setUseEngineBot] = useState(false);
+  const [useEngineBot, setUseEngineBot] = useState(true);
   const [variant, setVariant] = useState<Variant>("standard");
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [fen, setFen] = useState(() => new Chess().fen());
@@ -65,6 +68,9 @@ function PlayInner() {
   const [reviewNote, setReviewNote] = useState<string | null>(null);
   const [ratingNote, setRatingNote] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [lastXp, setLastXp] = useState<number | null>(null);
+  const [gameWon, setGameWon] = useState(false);
+  const [gameDraw, setGameDraw] = useState(false);
   const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
   const tickRef = useRef<number | null>(null);
   const historyRef = useRef<string[]>([]);
@@ -168,6 +174,20 @@ function PlayInner() {
         draws: result === "1/2-1/2" ? 1 : 0,
         twinSessions: mode === "twin" ? 1 : 0,
       });
+
+      setGameWon(Boolean(youWon));
+      setGameDraw(result === "1/2-1/2");
+      try {
+        const reward = trackGamePlayed();
+        setLastXp(reward.gain);
+        emitRewardToast({
+          gain: reward.gain,
+          bonus: reward.bonus,
+          reason: youWon ? "Win bonus path" : result === "1/2-1/2" ? "Draw XP" : "Lesson XP",
+        });
+      } catch {
+        setLastXp(null);
+      }
 
       if (mode !== "pass" && (result === "1-0" || result === "0-1" || result === "1/2-1/2")) {
         const score: 0 | 0.5 | 1 =
@@ -399,12 +419,16 @@ function PlayInner() {
       if (current.isGameOver() || current.turn() === playerColor) return;
 
       const currentFen = current.fen();
-      let move = pickBotMove(currentFen, bot);
-      if (useEngineBot) {
+      // pickBotMove already uses tournament book + deep engine by rating
+      let move = pickBotMove(currentFen, {
+        ...bot,
+        useDeepEngine: useEngineBot || bot.useDeepEngine || bot.rating >= 1200,
+      });
+      if (!move && useEngineBot) {
         try {
-          move = engineMove(currentFen, bot.rating >= 2000 ? 2 : 1) ?? move;
+          move = engineMove(currentFen, bot.rating >= 2000 ? 4 : bot.rating >= 1400 ? 3 : 2);
         } catch {
-          // keep pickBotMove
+          /* ignore */
         }
       }
       if (!move || cancelled) return;
@@ -549,17 +573,17 @@ function PlayInner() {
                     className={cn(
                       "rounded-2xl border p-3 text-left transition-colors",
                       mode === m.id
-                        ? "border-cyan-400/40 bg-cyan-400/10"
+                        ? "border-emerald-500/40 bg-emerald-500/10"
                         : "border-white/10 hover:border-white/20",
                     )}
                   >
-                    <m.icon size={18} className="text-cyan-300 mb-1" />
+                    <m.icon size={18} className="text-amber-400 mb-1" />
                     <div className="font-semibold text-sm">{m.label}</div>
                   </button>
                 ))}
               </div>
               {twinName && (
-                <p className="text-xs text-violet-300 mt-2">Scout Twin loaded: {twinName}</p>
+                <p className="text-xs text-amber-400 mt-2">Scout Twin loaded: {twinName}</p>
               )}
             </div>
 
@@ -579,9 +603,9 @@ function PlayInner() {
               </div>
               <p className="text-xs text-[var(--text-dim)] mt-2">
                 Your {categoryFromTimeControl(timeId)} rating:{" "}
-                <span className="font-mono text-cyan-300">{myRating}</span>
+                <span className="font-mono text-amber-400">{myRating}</span>
                 {" · "}
-                <Link href="/leaderboard" className="text-cyan-300 hover:underline">
+                <Link href="/leaderboard" className="text-amber-400 hover:underline">
                   Ladder
                 </Link>
               </p>
@@ -638,14 +662,19 @@ function PlayInner() {
                           className={cn(
                             "text-left rounded-2xl border p-3 transition-colors",
                             botKey === key
-                              ? "border-cyan-400/40 bg-cyan-400/10"
+                              ? "border-emerald-500/40 bg-emerald-500/10"
                               : "border-white/10 bg-white/[0.02] hover:border-white/20",
                           )}
                         >
                           <div className="font-semibold">{b.name}</div>
                           <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                            ~{formatRating(b.rating)} · {b.style}
+                            ~{formatRating(b.rating)} Elo · {b.style}
                           </div>
+                          {b.blurb && (
+                            <div className="text-[10px] text-[var(--text-dim)] mt-1 leading-snug">
+                              {b.blurb}
+                            </div>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -654,16 +683,20 @@ function PlayInner() {
                         type="checkbox"
                         checked={useEngineBot}
                         onChange={(e) => setUseEngineBot(e.target.checked)}
-                        className="accent-cyan-300"
+                        className="accent-emerald-500"
                       />
-                      Stronger engine moves (minimax) for high bots
+                      Max tournament engine (deeper search — recommended)
                     </label>
+                    <p className="text-[11px] text-[var(--text-dim)] mt-2">
+                      Bots use world-championship opening books + multi-ply search. Spark ≈ beginner;
+                      Oracle ≈ master. If Summit feels easy, enable max engine and try Oracle.
+                    </p>
                   </div>
                 )}
 
                 {mode === "twin" && !twinName && (
-                  <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 p-4 text-sm text-[var(--text-muted)]">
-                    Open <Link href="/scout" className="text-violet-300 underline">Scout</Link> and
+                  <div className="rounded-2xl border border-amber-500/25 bg-amber-600/10 p-4 text-sm text-[var(--text-muted)]">
+                    Open <Link href="/scout" className="text-amber-400 underline">Scout</Link> and
                     generate a report, then click <strong>Train Twin Bot</strong>. Or start with a
                     generic twin.
                   </div>
@@ -689,7 +722,7 @@ function PlayInner() {
                   <Link
                     key={g.id}
                     href={`/analyze?game=${g.id}`}
-                    className="block rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 hover:border-cyan-400/30 transition-colors"
+                    className="block rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 hover:border-emerald-500/30 transition-colors"
                   >
                     <div className="text-sm font-medium truncate">
                       {g.white} vs {g.black}
@@ -774,28 +807,36 @@ function PlayInner() {
             </div>
 
             {phase === "ended" && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                <div className="font-semibold text-sm">Game over</div>
-                <p className="text-xs text-[var(--text-muted)]">{status}</p>
-                {reviewNote && <p className="text-xs text-cyan-200/90">{reviewNote}</p>}
-                {ratingNote && (
-                  <p className="text-xs text-amber-200/90 font-mono">Rating {ratingNote}</p>
-                )}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button type="button" className="btn btn-primary !py-2 !text-xs" onClick={startGame}>
-                    Rematch
-                  </button>
-                  {savedId && (
-                    <Link href={`/analyze?game=${savedId}`} className="btn btn-secondary !py-2 !text-xs">
-                      Full review
-                    </Link>
+              <div className="space-y-3">
+                <PostGameEmotion
+                  won={gameWon}
+                  draw={gameDraw}
+                  xpGain={lastXp ?? undefined}
+                  streak={loadEngagement().streak}
+                  reviewHref={savedId ? `/analyze?game=${savedId}` : "/analyze"}
+                />
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                  <p className="text-xs text-[var(--text-muted)]">{status}</p>
+                  {reviewNote && <p className="text-xs text-amber-300/90">{reviewNote}</p>}
+                  {ratingNote && (
+                    <p className="text-xs text-amber-200/90 font-mono">Rating {ratingNote}</p>
                   )}
-                  <Link href="/tournaments" className="btn btn-ghost !py-2 !text-xs">
-                    Gauntlet
-                  </Link>
-                  <Link href="/scout" className="btn btn-ghost !py-2 !text-xs">
-                    Scout
-                  </Link>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" className="btn btn-primary !py-2 !text-xs" onClick={startGame}>
+                      Rematch
+                    </button>
+                    {savedId && (
+                      <Link
+                        href={`/analyze?game=${savedId}`}
+                        className="btn btn-secondary !py-2 !text-xs"
+                      >
+                        Full review
+                      </Link>
+                    )}
+                    <Link href="/tournaments" className="btn btn-ghost !py-2 !text-xs">
+                      Gauntlet
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}
@@ -826,7 +867,7 @@ function ClockRow({
     <div
       className={cn(
         "flex items-center justify-between rounded-2xl border px-3 py-2.5 transition-colors",
-        active ? "border-cyan-400/40 bg-cyan-400/10" : "border-white/10 bg-white/[0.03]",
+        active ? "border-emerald-500/40 bg-emerald-500/10" : "border-white/10 bg-white/[0.03]",
       )}
     >
       <div className="flex items-center gap-2 min-w-0">

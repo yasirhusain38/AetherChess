@@ -36,7 +36,7 @@ export default function StudiesPage() {
         <div>
           <div className="section-title">Studies</div>
           <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-            <BookOpen className="text-violet-300" size={28} />
+            <BookOpen className="text-amber-400" size={28} />
             Collaborative notebooks
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">

@@ -39,7 +39,7 @@ export default function SettingsPage() {
       <div>
         <div className="section-title">Platform</div>
         <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-          <Settings className="text-cyan-300" size={28} />
+          <Settings className="text-amber-400" size={28} />
           Settings
         </h1>
       </div>
@@ -56,7 +56,7 @@ export default function SettingsPage() {
                 className="h-12 w-12 rounded-2xl object-cover border border-white/10"
               />
             ) : (
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 text-[#061018] font-bold">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-amber-500 text-[#061018] font-bold">
                 {(session.user.name || session.user.email || "A").charAt(0).toUpperCase()}
               </span>
             )}
@@ -112,7 +112,7 @@ export default function SettingsPage() {
               className={cn(
                 "rounded-2xl border p-3 text-left transition-colors",
                 settings.boardTheme === t.id
-                  ? "border-cyan-400/40 bg-cyan-400/10"
+                  ? "border-emerald-500/40 bg-emerald-500/10"
                   : "border-white/10 hover:border-white/20",
               )}
             >
@@ -154,7 +154,7 @@ export default function SettingsPage() {
             <input
               type="checkbox"
               checked={value}
-              className="accent-cyan-300 h-4 w-4"
+              className="accent-emerald-500 h-4 w-4"
               onChange={(e) => {
                 update({ [key]: e.target.checked });
                 if (key === "sound" && e.target.checked) playSound("success", true);

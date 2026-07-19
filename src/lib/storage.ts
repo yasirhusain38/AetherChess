@@ -74,7 +74,7 @@ export interface UserStats {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  boardTheme: "aether",
+  boardTheme: "tournament",
   pieceTheme: "classic",
   sound: true,
   animations: true,

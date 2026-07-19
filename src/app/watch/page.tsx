@@ -98,7 +98,7 @@ export default function WatchPage() {
       <div>
         <div className="section-title">Broadcast</div>
         <h1 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2">
-          <Eye className="text-cyan-300" size={28} />
+          <Eye className="text-amber-400" size={28} />
           Watch
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
@@ -163,7 +163,7 @@ export default function WatchPage() {
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {chat.map((m) => (
               <div key={m.id} className="text-sm">
-                <span className="text-cyan-300 font-medium">{m.user}</span>
+                <span className="text-amber-400 font-medium">{m.user}</span>
                 <span className="text-[var(--text-muted)]">: {m.text}</span>
               </div>
             ))}
